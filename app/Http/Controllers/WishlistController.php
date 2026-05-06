@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Game;
 use App\Models\Wishlist;
 use App\Services\ActivityLogger;
+use App\Services\CartService;
 use Illuminate\Http\Request;
 
 class WishlistController extends Controller
@@ -12,7 +13,7 @@ class WishlistController extends Controller
     /**
      * Список избранного пользователя.
      */
-    public function list(Request $request)
+    public function list(Request $request, CartService $cartService)
     {
         $user = $request->user();
 
@@ -25,8 +26,11 @@ class WishlistController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $cartGameIds = array_keys($cartService->getCart($user));
+
         return view('wishlist.index', [
             'items' => $items,
+            'cartGameIds' => $cartGameIds,
         ]);
     }
 

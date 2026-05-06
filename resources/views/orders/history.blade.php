@@ -6,7 +6,7 @@
 <main class="grid" style="gap: 20px;">
     <section class="card">
         <h2 style="margin-top: 0;">История заказов</h2>
-        <p class="muted">Все ваши покупки в одном месте.</p>
+        <p class="muted">Все ваши покупки и попытки оплаты в одном месте.</p>
     </section>
 
     <section class="card">
@@ -20,6 +20,9 @@
                             <div><strong>Заказ #{{ $order->id }}</strong></div>
                             <div class="muted">{{ $order->created_at->format('d.m.Y H:i') }}</div>
                             <div class="muted">Статус: {{ $order->status }}</div>
+                            @if ($order->payment)
+                                <div class="muted">Оплата: {{ $order->payment->status }}</div>
+                            @endif
                         </div>
                         <div>
                             <div><strong>{{ number_format($order->total_amount, 2, '.', ' ') }} {{ $order->currency }}</strong></div>

@@ -13,6 +13,14 @@ class LibraryService
      */
     public function addGameToLibrary(User $user, Game $game, ?int $orderItemId = null): UserLibrary
     {
+        $entry = UserLibrary::where('user_id', $user->id)
+            ->where('game_id', $game->id)
+            ->first();
+
+        if ($entry) {
+            return $entry;
+        }
+
         return UserLibrary::create([
             'user_id' => $user->id,
             'game_id' => $game->id,

@@ -22,7 +22,12 @@
             </div>
 
             <div class="card" style="margin-top: 16px;">
-                <div class="muted">Здесь будет история покупок, библиотека и настройки аккаунта.</div>
+                <div class="muted">Здесь собраны основные данные аккаунта, доступ к библиотеке и история всех ваших покупок.</div>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <a class="btn" href="{{ route('orders.history') }}">История покупок</a>
+                <a class="pill" href="{{ route('library.index') }}">Моя библиотека</a>
             </div>
         @endauth
 

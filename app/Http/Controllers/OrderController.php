@@ -3,17 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Services\CartService;
-use App\Services\ActivityLogger;
-use App\Services\OrderService;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class OrderController extends Controller
 {
     /**
-     * Оформление заказа (форма + создание).
+     * Show user's order history.
      */
-    public function checkout(Request $request, CartService $cartService, OrderService $orderService, ActivityLogger $activityLogger)
+    public function history(Request $request): View
     {
         $user = $request->user();
 
@@ -21,43 +19,8 @@ class OrderController extends Controller
             abort(401, 'Unauthorized');
         }
 
-        if ($user->is_banned) {
-            abort(403, 'Ваш аккаунт заблокирован. Покупки недоступны.');
-        }
-
-        $items = $cartService->getCartItems($user);
-
-        if ($request->isMethod('post')) {
-            if (empty($items)) {
-                return back()->withErrors(['cart' => 'Корзина пуста.']);
-            }
-
-            $order = $orderService->createOrder($user, $items, $activityLogger);
-            $orderService->completeOrder($order);
-            $cartService->clearCart($user);
-
-            return redirect()->route('orders.details', $order->id)
-                ->with('status', 'Заказ успешно оформлен.');
-        }
-
-        return view('orders.checkout', [
-            'items' => $items,
-            'total' => $orderService->calculateTotal($items),
-        ]);
-    }
-
-    /**
-     * История заказов пользователя.
-     */
-    public function history(Request $request)
-    {
-        $user = $request->user();
-
-        if (!$user) {
-            abort(401, 'Unauthorized');
-        }
-
-        $orders = Order::where('user_id', $user->id)
+        $orders = Order::with('payment')
+            ->where('user_id', $user->id)
             ->orderByDesc('created_at')
             ->paginate(10);
 
@@ -67,9 +30,9 @@ class OrderController extends Controller
     }
 
     /**
-     * Детали заказа.
+     * Show details for a single order.
      */
-    public function orderDetails(Request $request, Order $order)
+    public function orderDetails(Request $request, Order $order): View
     {
         $user = $request->user();
 
@@ -81,7 +44,7 @@ class OrderController extends Controller
             abort(403, 'Forbidden');
         }
 
-        $order->load(['items.game']);
+        $order->load(['items.game', 'payment']);
 
         return view('orders.details', [
             'order' => $order,

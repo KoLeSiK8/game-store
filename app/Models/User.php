@@ -73,6 +73,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Payments made by the user.
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
      * Library entries for purchased games.
      */
     public function library()

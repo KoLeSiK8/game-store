@@ -6,8 +6,13 @@
 <main class="grid" style="gap: 20px;">
     <section class="card">
         <h2 style="margin-top: 0;">Заказ #{{ $order->id }}</h2>
-        <div class="muted">Статус: {{ $order->status }}</div>
+        <div class="muted">Статус заказа: {{ $order->status }}</div>
         <div class="muted">Дата: {{ $order->created_at->format('d.m.Y H:i') }}</div>
+        @if ($order->payment)
+            <div class="muted">Статус оплаты: {{ $order->payment->status }}</div>
+            <div class="muted">Карта: **** {{ $order->payment->card_last4 }}</div>
+            <div class="muted">Transaction ID: {{ $order->payment->transaction_id }}</div>
+        @endif
     </section>
 
     <section class="card">

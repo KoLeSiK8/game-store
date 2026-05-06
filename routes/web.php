@@ -8,6 +8,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\GamePageController;
 use App\Http\Controllers\LibraryController;
@@ -22,29 +23,33 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Каталог игр с фильтрами.
+// Public catalog pages.
 Route::get('/catalog', [CatalogController::class, 'index'])->name('catalog.index');
-
-// Страница игры.
 Route::get('/games/{game}', [GamePageController::class, 'show'])->name('games.show');
 
-// Страницы аутентификации.
+// Auth pages.
 Route::view('/login', 'auth.login')->name('login');
 Route::view('/register', 'auth.register')->name('register');
 Route::view('/profile', 'profile')->middleware('auth')->name('profile');
 
-// Корзина.
+// Cart.
 Route::get('/cart', [CartController::class, 'view'])->name('cart.view');
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
 Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
 Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
 Route::post('/cart/toggle', [CartController::class, 'toggle'])->name('cart.toggle');
 
-// Заказы, библиотека, отзывы, избранное и рекомендации.
+// Authenticated user area.
 Route::middleware(['auth'])->group(function () {
-    Route::match(['get', 'post'], '/checkout', [OrderController::class, 'checkout'])->name('orders.checkout');
+    Route::post('/orders/create', [CheckoutController::class, 'createOrder'])->name('orders.create');
+    Route::get('/checkout/{order}', [CheckoutController::class, 'show'])->name('checkout.show');
+    Route::post('/checkout/{order}/pay', [CheckoutController::class, 'pay'])->name('checkout.pay');
+    Route::get('/orders/{order}/success', [CheckoutController::class, 'success'])->name('orders.success');
+    Route::get('/orders/{order}/failed', [CheckoutController::class, 'failed'])->name('orders.failed');
+
     Route::get('/orders', [OrderController::class, 'history'])->name('orders.history');
     Route::get('/orders/{order}', [OrderController::class, 'orderDetails'])->name('orders.details');
+
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
     Route::get('/library/download/{gameFile}', [LibraryController::class, 'downloadGame'])->name('library.download');
 
@@ -58,13 +63,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/wishlist/toggle/{game}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
 
     Route::get('/recommendations', [RecommendationController::class, 'index'])->name('recommendations.index');
-
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
-
     Route::get('/catalog/state', [UserCatalogStateController::class, 'index'])->name('catalog.state');
 });
 
-// Админ: панель, модерация игр/отзывов и управление пользователями.
+// Admin area.
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin', [AdminPanelController::class, 'index'])->name('admin.index');
 
@@ -81,7 +84,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/admin/users/{user}/role', [AdminUserController::class, 'assignRole'])->name('admin.users.role');
 });
 
-// Маршруты для продавцов.
+// Seller area.
 Route::middleware(['auth', 'seller'])->group(function () {
     Route::get('/seller/games/create', [GameController::class, 'create'])->name('seller.games.create');
     Route::post('/seller/games', [GameController::class, 'store'])->name('seller.games.store');
@@ -91,7 +94,7 @@ Route::middleware(['auth', 'seller'])->group(function () {
     Route::post('/seller/games/{game}/files', [GameController::class, 'uploadFile'])->name('seller.games.files.upload');
 });
 
-// Аутентификация.
+// Auth actions.
 Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
 Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
 Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');

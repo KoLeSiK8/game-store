@@ -5,18 +5,17 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
-use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class OrderService
 {
     /**
-     * Создать заказ на основе корзины.
+     * Create a pending order based on prepared items.
      *
      * @param array<int, array{game: \App\Models\Game, quantity: int}> $items
      */
-    public function createOrder(User $user, array $items, ?ActivityLogger $activityLogger = null): Order
+    public function createOrder(User $user, array $items): Order
     {
         if (empty($items)) {
             throw new InvalidArgumentException('Корзина пуста.');
@@ -42,28 +41,13 @@ class OrderService
                 $lineTotal = $game->price * $quantity;
                 $total += $lineTotal;
 
-                $orderItem = OrderItem::create([
+                OrderItem::create([
                     'order_id' => $order->id,
                     'game_id' => $game->id,
                     'price' => $game->price,
                     'currency' => $game->currency,
                     'quantity' => $quantity,
                 ]);
-
-                // Добавляем игру в библиотеку пользователя.
-                DB::table('user_library')->insert([
-                    'user_id' => $user->id,
-                    'game_id' => $game->id,
-                    'order_item_id' => $orderItem->id,
-                    'purchased_at' => now(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                // Логируем покупку.
-                if ($activityLogger) {
-                    $activityLogger->logPurchase($user, $game);
-                }
             }
 
             $order->update([
@@ -71,12 +55,12 @@ class OrderService
                 'currency' => $currency,
             ]);
 
-            return $order;
+            return $order->fresh(['items.game']);
         });
     }
 
     /**
-     * Рассчитать сумму по корзине.
+     * Calculate total amount for prepared items.
      *
      * @param array<int, array{game: \App\Models\Game, quantity: int}> $items
      */
@@ -92,7 +76,7 @@ class OrderService
     }
 
     /**
-     * Завершить заказ.
+     * Mark order as completed.
      */
     public function completeOrder(Order $order): void
     {
