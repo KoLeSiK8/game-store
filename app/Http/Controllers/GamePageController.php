@@ -5,15 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\Game;
 use App\Services\LibraryService;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class GamePageController extends Controller
 {
     /**
-     * Show the game page.
+     * Страница игры.
      */
-    public function show(Request $request, Game $game, LibraryService $libraryService)
+    public function show(Request $request, Game $game, LibraryService $libraryService): View
     {
-        $game->load(['categories', 'tags', 'reviews.user', 'files']);
+        $game->load(['categories', 'tags', 'reviews.user', 'files.uploader']);
 
         $user = $request->user();
         $isOwned = false;

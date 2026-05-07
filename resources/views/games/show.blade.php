@@ -32,33 +32,33 @@
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             @auth
                 @if ($isOwned)
-                    <a class="pill" href="/library">Уже в библиотеке</a>
+                    <a class="pill" href="{{ route('library.index') }}">Уже в библиотеке</a>
                 @else
-                    <form method="POST" action="/orders/create">
+                    <form method="POST" action="{{ route('orders.create') }}">
                         @csrf
                         <input type="hidden" name="game_id" value="{{ $game->id }}">
                         <button class="btn" type="submit">Купить</button>
                     </form>
                 @endif
 
-                <form method="POST" action="/cart/toggle">
+                <form method="POST" action="{{ route('cart.toggle') }}">
                     @csrf
                     <input type="hidden" name="game_id" value="{{ $game->id }}">
                     <button class="pill" type="submit">В корзину</button>
                 </form>
 
-                <form method="POST" action="/wishlist/toggle/{{ $game->id }}">
+                <form method="POST" action="{{ route('wishlist.toggle', $game) }}">
                     @csrf
                     <button class="pill" type="submit">В избранное</button>
                 </form>
 
                 @if ($isOwned)
-                    <a class="pill" href="/games/{{ $game->id }}/reviews/create">Оставить отзыв</a>
+                    <a class="pill" href="{{ route('reviews.create', $game) }}">Оставить отзыв</a>
                 @endif
             @endauth
 
             @guest
-                <a class="pill" href="/login">Войти, чтобы купить</a>
+                <a class="pill" href="{{ route('login') }}">Войти, чтобы купить</a>
             @endguest
         </div>
     </section>
@@ -66,20 +66,26 @@
     <section class="card">
         <h3 style="margin-top: 0;">Файлы игры</h3>
 
+        @php
+            $availableFiles = $game->files->where('is_active', true);
+        @endphp
+
         @auth
             @if (!$isOwned)
                 <div class="muted">Скачивание станет доступно после успешной покупки.</div>
-            @elseif ($game->files->isEmpty())
-                <div class="muted">Файлы пока не загружены продавцом.</div>
+            @elseif ($availableFiles->isEmpty())
+                <div class="muted">Продавец пока не загрузил активный файл для скачивания.</div>
             @else
-                <div class="grid" style="gap: 8px;">
-                    @foreach ($game->files as $file)
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="grid" style="gap: 10px;">
+                    @foreach ($availableFiles as $file)
+                        <div class="card" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                             <div>
-                                <div><strong>{{ $file->file_name }}</strong></div>
-                                <div class="muted">Версия: {{ $file->version ?? '—' }}</div>
+                                <div><strong>{{ $file->original_file_name }}</strong></div>
+                                <div class="muted">Версия: {{ $file->version }}</div>
+                                <div class="muted">Размер: {{ number_format($file->file_size / 1048576, 2) }} MB</div>
+                                <div class="muted">MD5: {{ $file->md5_hash ?: '—' }}</div>
                             </div>
-                            <a class="pill" href="/library/download/{{ $file->id }}">Скачать</a>
+                            <a class="pill" href="{{ route('library.files.show', $file) }}">Скачать</a>
                         </div>
                     @endforeach
                 </div>

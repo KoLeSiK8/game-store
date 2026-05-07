@@ -37,6 +37,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 20px 0;
+            gap: 16px;
         }
         .brand { display: flex; gap: 12px; align-items: center; }
         .logo {
@@ -52,7 +53,7 @@
             letter-spacing: 0.4px;
             margin: 0;
         }
-        .nav { display: flex; gap: 16px; align-items: center; }
+        .nav { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
         .pill {
             border: 1px solid var(--border);
             padding: 8px 14px;
@@ -76,7 +77,6 @@
         .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         @media (max-width: 900px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
-            .nav { flex-wrap: wrap; justify-content: flex-end; }
         }
 
         .btn {
@@ -106,32 +106,35 @@
 <body>
     <div class="container">
         <header class="topbar">
-            <a class="brand" href="/">
+            <a class="brand" href="{{ url('/') }}">
                 <span class="logo"></span>
                 <h1>Game Store</h1>
             </a>
             <nav class="nav">
-                <a class="pill" href="/">Главная</a>
-        @auth
-            <a class="pill" href="/profile">Профиль</a>
-            <a class="pill" href="/library">Моя библиотека</a>
-            <a class="pill" href="/wishlist">Избранное</a>
-            <a class="pill" href="/recommendations">Рекомендации</a>
-            <a class="pill" href="/cart">Корзина</a>
-            @php
-                $roleNames = auth()->user()->roles->pluck('name');
-            @endphp
-            @if ($roleNames->contains('admin'))
-                <a class="pill" href="/admin" target="_blank" rel="noopener noreferrer">Админ: панель</a>
-            @endif
-            <form method="POST" action="/logout">
-                @csrf
-                <button class="pill" type="submit">Выйти</button>
-            </form>
+                <a class="pill" href="{{ url('/') }}">Главная</a>
+                @auth
+                    @php
+                        $roleNames = auth()->user()->roles->pluck('name');
+                    @endphp
+                    <a class="pill" href="{{ route('profile') }}">Профиль</a>
+                    <a class="pill" href="{{ route('library.index') }}">Моя библиотека</a>
+                    <a class="pill" href="{{ route('wishlist.list') }}">Избранное</a>
+                    <a class="pill" href="{{ route('recommendations.index') }}">Рекомендации</a>
+                    <a class="pill" href="{{ route('cart.view') }}">Корзина</a>
+                    @if ($roleNames->contains('seller'))
+                        <a class="pill" href="{{ route('seller.dashboard') }}">Кабинет продавца</a>
+                    @endif
+                    @if ($roleNames->contains('admin'))
+                        <a class="pill" href="{{ route('admin.index') }}" target="_blank" rel="noopener noreferrer">Админ: панель</a>
+                    @endif
+                    <form method="POST" action="{{ route('auth.logout') }}">
+                        @csrf
+                        <button class="pill" type="submit">Выйти</button>
+                    </form>
                 @endauth
                 @guest
-                    <a class="pill" href="/login">Войти</a>
-                    <a class="pill primary" href="/register">Регистрация</a>
+                    <a class="pill" href="{{ route('login') }}">Войти</a>
+                    <a class="pill primary" href="{{ route('register') }}">Регистрация</a>
                 @endguest
             </nav>
         </header>
@@ -139,7 +142,7 @@
         @yield('content')
 
         <footer>
-            Game store
+            Game Store
         </footer>
     </div>
 </body>

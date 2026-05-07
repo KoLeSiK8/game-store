@@ -2,19 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UploadGameFileRequest;
 use App\Models\Category;
 use App\Models\Game;
+use App\Models\GameFile;
 use App\Models\GameTag;
+use App\Services\GameFileService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class GameController extends Controller
 {
     /**
      * Форма создания игры.
      */
-    public function create()
+    public function create(): View
     {
         return view('games.create', [
             'categories' => Category::orderBy('name')->get(),
@@ -25,7 +29,7 @@ class GameController extends Controller
     /**
      * Сохранение новой игры.
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $seller = $request->user();
 
@@ -54,24 +58,21 @@ class GameController extends Controller
             'status' => 'pending',
         ]);
 
-        // Привязываем категории и теги.
         $game->categories()->sync($validated['category_ids']);
-        if (!empty($validated['tag_ids'])) {
-            $game->tags()->sync($validated['tag_ids']);
-        }
+        $game->tags()->sync($validated['tag_ids'] ?? []);
 
-        return redirect('/profile')->with('status', 'Игра создана и отправлена на модерацию.');
+        return redirect()->route('seller.dashboard')->with('status', 'Игра создана и отправлена на модерацию.');
     }
 
     /**
      * Форма редактирования игры.
      */
-    public function edit(Request $request, Game $game)
+    public function edit(Request $request, Game $game): View
     {
         $this->authorizeSeller($request, $game);
 
         return view('games.edit', [
-            'game' => $game->load('files'),
+            'game' => $game->load(['categories', 'tags', 'files.uploader']),
             'categories' => Category::orderBy('name')->get(),
             'tags' => GameTag::orderBy('name')->get(),
         ]);
@@ -80,7 +81,7 @@ class GameController extends Controller
     /**
      * Обновление игры.
      */
-    public function update(Request $request, Game $game)
+    public function update(Request $request, Game $game): RedirectResponse
     {
         $this->authorizeSeller($request, $game);
 
@@ -107,49 +108,65 @@ class GameController extends Controller
         $game->categories()->sync($validated['category_ids']);
         $game->tags()->sync($validated['tag_ids'] ?? []);
 
-        return redirect('/profile')->with('status', 'Игра обновлена и отправлена на модерацию.');
+        return redirect()->route('seller.dashboard')->with('status', 'Игра обновлена и повторно отправлена на модерацию.');
     }
 
     /**
-     * Загрузка файла игры продавцом.
+     * Загрузка новой версии файла игры.
      */
-    public function uploadFile(Request $request, Game $game)
-    {
+    public function uploadFile(
+        UploadGameFileRequest $request,
+        Game $game,
+        GameFileService $gameFileService
+    ): RedirectResponse {
         $this->authorizeSeller($request, $game);
 
-        $validated = $request->validate([
-            'file' => ['required', 'file', 'max:102400'],
-            'version' => ['nullable', 'string', 'max:50'],
-        ]);
+        $gameFileService->uploadGameFile(
+            $game,
+            $request->user(),
+            $request->file('file'),
+            $request->string('version')->toString(),
+            $request->has('make_active')
+        );
 
-        $file = $validated['file'];
-        $baseName = Str::slug($game->title) . '-' . now()->format('YmdHis');
-        $extension = $file->getClientOriginalExtension();
-        $fileName = $baseName . ($extension ? ('.' . $extension) : '');
+        return back()->with('status', 'Файл игры успешно загружен в защищенное хранилище.');
+    }
 
-        $path = $file->storeAs('games', $fileName, 'local');
+    /**
+     * Активировать выбранную версию файла.
+     */
+    public function activateFile(Request $request, Game $game, GameFile $gameFile, GameFileService $gameFileService): RedirectResponse
+    {
+        $this->authorizeSeller($request, $game);
+        $this->authorizeGameFile($game, $gameFile);
 
-        $game->files()->create([
-            'file_name' => $file->getClientOriginalName(),
-            'file_path' => $path,
-            'file_size' => $file->getSize(),
-            'version' => $validated['version'] ?? null,
-            'checksum' => hash_file('sha256', $file->getRealPath()),
-        ]);
+        $gameFileService->activateVersion($gameFile);
 
-        return back()->with('status', 'Файл загружен.');
+        return back()->with('status', 'Версия файла активирована.');
+    }
+
+    /**
+     * Удалить старую версию файла.
+     */
+    public function deleteFile(Request $request, Game $game, GameFile $gameFile, GameFileService $gameFileService): RedirectResponse
+    {
+        $this->authorizeSeller($request, $game);
+        $this->authorizeGameFile($game, $gameFile);
+
+        $gameFileService->deleteGameFile($gameFile);
+
+        return back()->with('status', 'Файл игры удален.');
     }
 
     /**
      * Удаление игры.
      */
-    public function delete(Request $request, Game $game)
+    public function delete(Request $request, Game $game): RedirectResponse
     {
         $this->authorizeSeller($request, $game);
-
         $game->delete();
 
-        return redirect('/profile')->with('status', 'Игра удалена.');
+        return redirect()->route('seller.dashboard')->with('status', 'Игра удалена.');
     }
 
     /**
@@ -165,6 +182,16 @@ class GameController extends Controller
 
         if ((int) $game->seller_id !== (int) $seller->id) {
             abort(403, 'Forbidden');
+        }
+    }
+
+    /**
+     * Проверить, что файл принадлежит выбранной игре.
+     */
+    private function authorizeGameFile(Game $game, GameFile $gameFile): void
+    {
+        if ((int) $gameFile->game_id !== (int) $game->id) {
+            abort(404, 'File not found for this game');
         }
     }
 }

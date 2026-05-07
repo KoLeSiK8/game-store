@@ -40,7 +40,7 @@ class LibraryService
     }
 
     /**
-     * Получить библиотеку пользователя.
+     * Получить библиотеку пользователя вместе с доступными файлами.
      */
     public function getUserLibrary(User $user)
     {

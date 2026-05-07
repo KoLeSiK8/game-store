@@ -65,6 +65,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Files uploaded by this seller.
+     */
+    public function uploadedGameFiles()
+    {
+        return $this->hasMany(GameFile::class, 'uploaded_by');
+    }
+
+    /**
      * Orders placed by the user.
      */
     public function orders()

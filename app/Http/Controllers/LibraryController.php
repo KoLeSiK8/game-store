@@ -2,18 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GameFile;
-use App\Services\ActivityLogger;
-use App\Services\DownloadService;
 use App\Services\LibraryService;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class LibraryController extends Controller
 {
     /**
      * Библиотека пользователя.
      */
-    public function index(Request $request, LibraryService $libraryService)
+    public function index(Request $request, LibraryService $libraryService): View
     {
         $user = $request->user();
 
@@ -24,23 +22,5 @@ class LibraryController extends Controller
         return view('library.index', [
             'library' => $libraryService->getUserLibrary($user),
         ]);
-    }
-
-    /**
-     * Скачивание игры (демо-заглушка).
-     */
-    public function downloadGame(Request $request, GameFile $gameFile, DownloadService $downloadService, ActivityLogger $activityLogger)
-    {
-        $user = $request->user();
-
-        if (!$user) {
-            abort(401, 'Unauthorized');
-        }
-
-        $response = $downloadService->download($gameFile, $user);
-
-        $activityLogger->logDownload($user, $gameFile->game);
-
-        return $response;
     }
 }

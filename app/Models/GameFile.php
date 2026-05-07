@@ -16,11 +16,28 @@ class GameFile extends Model
      */
     protected $fillable = [
         'game_id',
+        'uploaded_by',
         'file_name',
-        'file_path',
+        'original_file_name',
+        'storage_disk',
+        'storage_path',
         'file_size',
+        'mime_type',
         'version',
-        'checksum',
+        'md5_hash',
+        'download_count',
+        'is_active',
+    ];
+
+    /**
+     * Приведение типов атрибутов.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'file_size' => 'integer',
+        'download_count' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     /**
@@ -29,5 +46,13 @@ class GameFile extends Model
     public function game()
     {
         return $this->belongsTo(Game::class);
+    }
+
+    /**
+     * Продавец, загрузивший файл.
+     */
+    public function uploader()
+    {
+        return $this->belongsTo(User::class, 'uploaded_by');
     }
 }

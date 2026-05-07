@@ -70,11 +70,19 @@ class Game extends Model
     }
 
     /**
-     * Files for this game.
+     * All uploaded files for this game.
      */
     public function files()
     {
-        return $this->hasMany(GameFile::class);
+        return $this->hasMany(GameFile::class)->orderByDesc('is_active')->orderByDesc('created_at');
+    }
+
+    /**
+     * Active files available to customers.
+     */
+    public function activeFiles()
+    {
+        return $this->hasMany(GameFile::class)->where('is_active', true)->orderByDesc('created_at');
     }
 
     /**
